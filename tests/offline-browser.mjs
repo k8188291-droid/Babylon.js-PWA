@@ -32,7 +32,7 @@ page.on('pageerror', error => console.error('Page error:', error.message));
 function triangleGLB() {
   const positions = new Float32Array([-1,0,0, 1,0,0, 0,1,0]);
   const binary = Buffer.from(positions.buffer);
-  const gltf = { asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0 }], meshes: [{ name: 'OfflineTriangle', primitives: [{ attributes: { POSITION: 0 } }] }], buffers: [{ byteLength: binary.length }], bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: binary.length }], accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [-1,0,0], max: [1,1,0] }] };
+  const gltf = { asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name: 'OfflineTriangle', mesh: 0 }], meshes: [{ name: 'OfflineTriangle', primitives: [{ attributes: { POSITION: 0 } }] }], buffers: [{ byteLength: binary.length }], bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: binary.length }], accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [-1,0,0], max: [1,1,0] }] };
   let json = Buffer.from(JSON.stringify(gltf));
   json = Buffer.concat([json, Buffer.alloc((4 - json.length % 4) % 4, 32)]);
   const header = Buffer.alloc(20);
