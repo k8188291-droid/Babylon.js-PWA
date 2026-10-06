@@ -72,18 +72,19 @@ try {
     canvas.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
   }, triangleGLB().toString('base64'));
   await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.LastCreatedScene?.meshes?.some(mesh => mesh.getTotalVertices() >= 3 && mesh.name.includes('OfflineTriangle')), null, { timeout: 120000 });
+  await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.LastCreatedScene?.isReady(), null, { timeout: 120000 });
   assert.equal(remote.length, 0, 'Offline model path attempted an external request');
   await page.getByRole('button', { name: '安裝與離線說明', exact: true }).click();
   await page.getByRole('heading', { name: '安裝與離線使用' }).waitFor();
   await page.getByRole('button', { name: '關閉', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
-  assert.ok(fits, 'Mobile UI must not scroll horizontally');
+  // The Babylon loading overlay and render canvas resize on the next frames.
+  await page.waitForFunction(() => document.documentElement.scrollWidth <= window.innerWidth, null, { timeout: 10000 });
   await mkdir('test-results', { recursive: true });
   await page.screenshot({ path: 'test-results/offline-mobile.png' });
   console.log(`PASS: ${cache.count} files cached; offline restart and local glb load succeeded; no external startup requests.`);
 } catch (error) {
-  console.error('Browser state:', await page.evaluate(() => ({ status: document.getElementById('offline-status')?.textContent, text: document.body.innerText.slice(0,2000) })).catch(() => ({})));
+  console.error('Browser state:', await page.evaluate(() => ({ status: document.getElementById('offline-status')?.textContent, width: window.innerWidth, scrollWidth: document.documentElement.scrollWidth, overflowing: [...document.querySelectorAll('body *')].map(el => ({tag: el.tagName, id: el.id, width: el.getBoundingClientRect().width, right: el.getBoundingClientRect().right})).filter(el => el.right > window.innerWidth), text: document.body.innerText.slice(0,2000) })).catch(() => ({})));
   await mkdir('test-results', { recursive: true });
   await page.screenshot({ path: 'test-results/failure.png' }).catch(() => {});
   throw error;
