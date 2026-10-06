@@ -73,7 +73,7 @@ try {
   }, triangleGLB().toString('base64'));
   await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.LastCreatedScene?.meshes?.some(mesh => mesh.getTotalVertices() >= 3 && mesh.name.includes('OfflineTriangle')), null, { timeout: 120000 });
   assert.equal(remote.length, 0, 'Offline model path attempted an external request');
-  await page.getByRole('button', { name: '說明', exact: true }).click();
+  await page.getByRole('button', { name: '安裝與離線說明', exact: true }).click();
   await page.getByRole('heading', { name: '安裝與離線使用' }).waitFor();
   await page.getByRole('button', { name: '關閉', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
