@@ -111,7 +111,7 @@ def png_icon(size):
 def finalize(out, aliases):
     files = []
     for path in sorted(out.rglob("*")):
-        if path.is_file() and path.name not in {"sw.js", "offline-config.json"}:
+        if path.is_file() and not path.name.startswith('.') and path.name not in {"sw.js", "offline-config.json"}:
             digest = hashlib.sha256(path.read_bytes()).digest()
             files.append({"path": path.relative_to(out).as_posix(), "integrity": "sha256-" + base64.b64encode(digest).decode()})
     version = hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()[:20]
