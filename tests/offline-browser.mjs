@@ -57,7 +57,10 @@ try {
 
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => document.getElementById('offline-status').textContent === '離線模式' && globalThis.BABYLON?.EngineStore?.Instances?.length > 0 && document.querySelector('canvas'), null, { timeout: 120000 });
+  await page.waitForFunction(() => ['離線模式', '可離線使用'].includes(document.getElementById('offline-status').textContent) && globalThis.BABYLON?.EngineStore?.Instances?.length > 0 && document.querySelector('canvas'), null, { timeout: 120000 });
+  // Network emulation does not consistently update navigator.onLine in every
+  // Chromium target. Prove disconnection using an uncached same-origin request.
+  assert.ok(await page.evaluate(() => fetch('offline-proof-test').then(() => false).catch(() => true)), 'Browser network must actually be offline');
   // Use the application's actual FilesInput drag/drop path, rather than a
   // separate hand-written model loader, to verify offline local file viewing.
   await page.evaluate(base64 => {
