@@ -14,7 +14,7 @@ import re
 import shutil
 import struct
 import time
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit, urljoin
 from urllib.request import Request, urlopen
 import zlib
 
@@ -23,7 +23,7 @@ SOURCES = {
     "cdn.babylonjs.com": "vendor/cdn",
     "preview.babylonjs.com": "vendor/preview",
     "assets.babylonjs.com": "vendor/assets",
-    "sandbox.babylonjs.com": "vendor/sandbox",
+    "sandbox.babylonjs.com": "",
 }
 LIBRARIES = [
     "babylon.js", "addons/babylonjs.addons.min.js",
@@ -45,6 +45,7 @@ CDN_ASSETS = [
 ENVIRONMENTS = ["sanGiuseppeBridge.env", "ulmerMuenster.env", "studio.env"]
 URL_PATTERN = re.compile(r"https?://(?:cdn|preview|assets|sandbox)\.babylonjs\.com/[^\s\"'`<>\\)]+")
 RUNTIME_SUFFIXES = {".js", ".wasm", ".env", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".glb"}
+RELATIVE_ASSET_PATTERN = re.compile(r'''["'`]((?:\./|\.\./|/)?(?:assets/)?[A-Za-z0-9_.~/-]+\.(?:js|css|svg|png|jpg|jpeg|webp|woff2|wasm))["'`]''')
 
 def get(url):
     for attempt in range(3):
@@ -69,13 +70,15 @@ def normalize(url):
 
 def local_path(url):
     parts = urlsplit(normalize(url))
-    return SOURCES[parts.hostname] + parts.path
+    directory = SOURCES[parts.hostname]
+    return directory + parts.path if directory else parts.path.lstrip("/")
 
 def rewrite_text(text, base_path):
     # Root-relative URLs also work in blob workers and nested decoder scripts.
     for host, directory in SOURCES.items():
-        text = text.replace(f"https://{host}/", base_path + directory + "/")
-        text = text.replace(f"http://{host}/", base_path + directory + "/")
+        prefix = base_path + (directory + "/" if directory else "")
+        text = text.replace(f"https://{host}/", prefix)
+        text = text.replace(f"http://{host}/", prefix)
     return re.sub(r"//# sourceMappingURL=[^\r\n]+", "", text)
 
 def png_icon(size):
@@ -159,7 +162,7 @@ def build(base_path, out):
                 path = "babylon.sandbox.js" if url == "https://sandbox.babylonjs.com/babylon.sandbox.js" else local_path(url)
                 aliases[url] = path
                 provenance.append({"url": url, "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)})
-                if path.endswith(".js"):
+                if path.endswith((".js", ".css")):
                     original = data.decode("utf-8")
                     # Discover CDN scripts/textures that the current engine adds.
                     # Assets-site discovery is bounded to our required environments
@@ -170,6 +173,14 @@ def build(base_path, out):
                         suffix = Path(parts.path).suffix.lower()
                         if parts.hostname in {"cdn.babylonjs.com", "preview.babylonjs.com"} and suffix in RUNTIME_SUFFIXES:
                             pending.add(candidate)
+                    # Sandbox now ships a Vite shim plus hashed ES modules. Walk
+                    # its relative import/preload graph rather than caching only
+                    # babylon.sandbox.js, which is merely the entry-point shim.
+                    if urlsplit(url).hostname == "sandbox.babylonjs.com":
+                        for asset in RELATIVE_ASSET_PATTERN.findall(original):
+                            pending.add(normalize(urljoin("https://sandbox.babylonjs.com/" if asset.startswith("assets/") else url, asset)))
+                        original = original.replace('/assets/', base_path + 'assets/')
+                        original = re.sub(r'''return([ ]*)(["'])/\2\+''', lambda match: 'return' + match[1] + match[2] + base_path + match[2] + '+', original)
                     data = rewrite_text(original, base_path).encode()
                 target = out / path
                 target.parent.mkdir(parents=True, exist_ok=True)

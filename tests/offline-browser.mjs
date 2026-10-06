@@ -16,7 +16,7 @@ const server = createServer(async (request, response) => {
     await stat(path);
     response.writeHead(200, { 'Content-Type': types[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     response.end(await readFile(path));
-  } catch { response.writeHead(404).end(); }
+  } catch { console.error('Missing asset:', request.url); response.writeHead(404).end(); }
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
@@ -27,6 +27,7 @@ const page = await context.newPage();
 const remote = [];
 page.on('request', request => { if (/^https?:/.test(request.url()) && !request.url().startsWith(origin)) remote.push(request.url()); });
 page.on('console', message => { if (message.type() === 'error') console.error(message.text()); });
+page.on('pageerror', error => console.error('Page error:', error.message));
 
 function triangleGLB() {
   const positions = new Float32Array([-1,0,0, 1,0,0, 0,1,0]);
@@ -43,8 +44,8 @@ function triangleGLB() {
 }
 try {
   await page.goto(url);
-  await page.waitForFunction(() => ['可離線使用','離線模式'].includes(document.getElementById('offline-status').textContent), { timeout: 240000 });
-  await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.LastCreatedScene && !document.getElementById('boot-message'), { timeout: 120000 });
+  await page.waitForFunction(() => ['可離線使用','離線模式'].includes(document.getElementById('offline-status').textContent), null, { timeout: 240000 });
+  await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.LastCreatedScene && !document.getElementById('boot-message'), null, { timeout: 120000 });
   assert.equal(remote.length, 0, `Startup contacted external servers: ${remote.join(', ')}`);
   const cache = await page.evaluate(async () => {
     const config = await (await fetch('offline-config.json')).json();
@@ -56,7 +57,7 @@ try {
 
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => document.getElementById('offline-status').textContent === '離線模式' && globalThis.BABYLON?.EngineStore?.LastCreatedScene, { timeout: 120000 });
+  await page.waitForFunction(() => document.getElementById('offline-status').textContent === '離線模式' && globalThis.BABYLON?.EngineStore?.LastCreatedScene, null, { timeout: 120000 });
   // Use the application's actual FilesInput drag/drop path, rather than a
   // separate hand-written model loader, to verify offline local file viewing.
   await page.evaluate(base64 => {
@@ -67,7 +68,7 @@ try {
     if (!canvas) throw new Error('Sandbox canvas missing');
     canvas.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
   }, triangleGLB().toString('base64'));
-  await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.LastCreatedScene?.meshes?.some(mesh => mesh.getTotalVertices() >= 3 && mesh.name.includes('OfflineTriangle')), { timeout: 120000 });
+  await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.LastCreatedScene?.meshes?.some(mesh => mesh.getTotalVertices() >= 3 && mesh.name.includes('OfflineTriangle')), null, { timeout: 120000 });
   assert.equal(remote.length, 0, 'Offline model path attempted an external request');
   await page.getByRole('button', { name: '說明', exact: true }).click();
   await page.getByRole('heading', { name: '安裝與離線使用' }).waitFor();
@@ -78,6 +79,11 @@ try {
   await mkdir('test-results', { recursive: true });
   await page.screenshot({ path: 'test-results/offline-mobile.png' });
   console.log(`PASS: ${cache.count} files cached; offline restart and local glb load succeeded; no external startup requests.`);
+} catch (error) {
+  console.error('Browser state:', await page.evaluate(() => ({ status: document.getElementById('offline-status')?.textContent, text: document.body.innerText.slice(0,2000) })).catch(() => ({})));
+  await mkdir('test-results', { recursive: true });
+  await page.screenshot({ path: 'test-results/failure.png' }).catch(() => {});
+  throw error;
 } finally {
   await context.close(); await browser.close();
   await new Promise(resolve => server.close(resolve));

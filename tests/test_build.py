@@ -52,5 +52,10 @@ class BuildTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build.local_path("https://cdn.babylonjs.com/../../escape.js")
 
+    def test_vite_entry_assets_preserve_module_paths(self):
+        source = 's.src="./assets/index-abc.js";import"./shared-def.js";'
+        self.assertEqual(build.RELATIVE_ASSET_PATTERN.findall(source), ["./assets/index-abc.js", "./shared-def.js"])
+        self.assertEqual(build.local_path("https://sandbox.babylonjs.com/assets/index-abc.js"), "assets/index-abc.js")
+
 if __name__ == "__main__":
     unittest.main()
