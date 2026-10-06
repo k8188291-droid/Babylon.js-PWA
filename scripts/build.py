@@ -179,7 +179,7 @@ def build(base_path, out):
                     if urlsplit(url).hostname == "sandbox.babylonjs.com":
                         for asset in RELATIVE_ASSET_PATTERN.findall(original):
                             pending.add(normalize(urljoin("https://sandbox.babylonjs.com/" if asset.startswith("assets/") else url, asset)))
-                        original = original.replace('/assets/', base_path + 'assets/')
+                        original = re.sub(r'''(["'`(])/assets/''', lambda match: match[1] + base_path + 'assets/', original)
                         original = re.sub(r'''return([ ]*)(["'])/\2\+''', lambda match: 'return' + match[1] + match[2] + base_path + match[2] + '+', original)
                     data = rewrite_text(original, base_path).encode()
                 target = out / path
