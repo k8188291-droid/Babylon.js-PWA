@@ -1,0 +1,65 @@
+name: Build, verify offline, and publish Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate cache and build logic
+        run: |
+          python -m unittest discover -s tests -p 'test_*.py' -v
+          node --test tests/service-worker.test.mjs
+      - name: Mirror required assets and create integrity-checked offline bundle
+        env:
+          PAGES_BASE: /${{ github.event.repository.name }}
+        run: python scripts/build.py --base-path "${PAGES_BASE%/}/"
+      - name: Install browser for actual offline verification
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.62.1
+          npx playwright install --with-deps chromium
+      - name: Verify real Sandbox after disconnecting network
+        env:
+          PAGES_BASE: /${{ github.event.repository.name }}
+        run: node tests/offline-browser.mjs
+      - name: Keep complete downloadable website bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: babylon-sandbox-offline
+          path: dist
+          include-hidden-files: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,20 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; }
+* { box-sizing: border-box; }
+html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
+body { background: #171c25; color: #f3f5fa; display: flex; flex-direction: column; }
+#pwa-bar { min-height: 48px; padding: 8px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: #171c25; border-bottom: 1px solid #3c4554; z-index: 10000; flex-shrink: 0; font-size: 14px; }
+.brand { font-size: 16px; font-weight: 700; margin-right: auto; }
+.brand span { color: #ffb24c; }
+#offline-status { color: #c6d0de; }
+button { font: inherit; color: #fff; background: #344255; border: 1px solid #718099; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
+button:hover { background: #4a5b74; }
+button:focus-visible { outline: 3px solid #ffb24c; outline-offset: 2px; }
+[hidden] { display: none !important; }
+progress { width: 90px; accent-color: #ffb24c; height: 7px; }
+#host-element { position: relative; flex: 1; width: 100%; min-height: 0; overflow: hidden; }
+#boot-message { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 24px; font-size: 16px; }
+dialog { max-width: min(580px, calc(100vw - 28px)); color: #edf1f7; background: #202936; border: 1px solid #718099; border-radius: 12px; padding: 24px; font-size: 16px; line-height: 1.65; }
+dialog::backdrop { background: #000a; }
+dialog h1 { font-size: 22px; margin-top: 0; }
+dialog form { text-align: right; }
+@media (max-width: 600px) { .brand { width: 100%; } #pwa-bar { gap: 7px; padding: 7px 10px; } #offline-status { flex: 1; } progress { width: 65px; } }

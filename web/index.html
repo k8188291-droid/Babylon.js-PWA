@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#171c25">
+  <meta name="description" content="可安裝、離線使用的 Babylon.js Sandbox。本機開啟 glb、glTF、OBJ、STL 與 Babylon 場景。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Babylon Sandbox Offline</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="pwa.css">
+</head>
+<body>
+  <header id="pwa-bar" aria-label="離線與安裝狀態">
+    <span class="brand">Sandbox <span>Offline</span></span>
+    <span id="offline-status" role="status" aria-live="polite">正在準備離線資源…</span>
+    <progress id="download-progress" aria-label="離線資源下載進度"></progress>
+    <button id="retry-button" hidden>重新下載</button>
+    <button id="install-button" hidden>安裝</button>
+    <button id="update-button" hidden>套用更新</button>
+    <button id="help-button" aria-label="安裝與離線說明">說明</button>
+  </header>
+  <main id="host-element" aria-label="Babylon.js 模型檢視器">
+    <div id="boot-message" role="status">正在載入 Sandbox…</div>
+  </main>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <h1 id="help-title">安裝與離線使用</h1>
+    <p>第一次請保持連線，等上方顯示「可離線使用」，再從瀏覽器選單安裝應用程式。</p>
+    <p>Chrome／Edge：網址列的安裝圖示，或選單中的「安裝應用程式」。iPhone／iPad：Safari 的分享選單 →「加入主畫面」。</p>
+    <p>離線時可開啟本機模型。glTF／OBJ 若有外部貼圖、.bin 或 .mtl，請把模型和相依檔案一起拖入；需要子資料夾時請選取整個資料夾。單一 glb 通常最方便。</p>
+    <p>線上模型網址、文件連結與遠端貼圖仍需要網路。模型不會自動保存；每次開啟時請重新選取本機檔案。</p>
+    <p>瀏覽器清除網站資料或儲存空間不足時，離線資源可能被移除，屆時請連線重新下載。</p>
+    <form method="dialog"><button>關閉</button></form>
+  </dialog>
+  <script src="boot.js" defer></script>
+</body>
+</html>
