@@ -45,7 +45,7 @@ function triangleGLB() {
 try {
   await page.goto(url);
   await page.waitForFunction(() => ['可離線使用','離線模式'].includes(document.getElementById('offline-status').textContent), null, { timeout: 240000 });
-  await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.LastCreatedScene && !document.getElementById('boot-message'), null, { timeout: 120000 });
+  await page.waitForFunction(() => globalThis.BABYLON?.EngineStore?.Instances?.length > 0 && document.querySelector("canvas") && !document.getElementById('boot-message'), null, { timeout: 120000 });
   assert.equal(remote.length, 0, `Startup contacted external servers: ${remote.join(', ')}`);
   const cache = await page.evaluate(async () => {
     const config = await (await fetch('offline-config.json')).json();
@@ -57,7 +57,7 @@ try {
 
   await context.setOffline(true);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => document.getElementById('offline-status').textContent === '離線模式' && globalThis.BABYLON?.EngineStore?.LastCreatedScene, null, { timeout: 120000 });
+  await page.waitForFunction(() => document.getElementById('offline-status').textContent === '離線模式' && globalThis.BABYLON?.EngineStore?.Instances?.length > 0 && document.querySelector('canvas'), null, { timeout: 120000 });
   // Use the application's actual FilesInput drag/drop path, rather than a
   // separate hand-written model loader, to verify offline local file viewing.
   await page.evaluate(base64 => {
